@@ -1,0 +1,48 @@
+#!/bin/sh
+
+freeStorage=$(df -Ph . | tail -1 | awk '{print $4}')
+
+check() {
+    if pgrep tcpdump > /dev/null; then
+        echo "{ \"status\": \"active\" }"
+    else     
+        pcapFile=$(find $1 -type f -iname "*.pcap")  
+        if [ ! -z "$pcapFile" ]; then
+            pcapFile=$(basename $pcapFile)
+            pcapTs=$(echo "$pcapFile" | grep -o -e '^[0-9]*')        
+            pcapLength=$(echo $pcapFile | sed s/$pcapTs-//g | sed s/\.pcap//g)        
+            pcapFileSize=$(wc -c < $1$pcapFile)            
+            echo "{ \"status\": \"complete\", \"file\": \"$pcapFile\", \"fileSize\": $pcapFileSize, \"startTs\": $pcapTs, \"durationSec\": $pcapLength , \"freeStorage\": \"$freeStorage\" }"
+        else
+            echo "{ \"status\": \"none\", \"file\": \"\", \"fileSize\":0, \"startTs\": 0, \"durationSec\": 0 }"
+        fi
+    fi    
+}
+
+start() {
+    if pgrep tcpdump > /dev/null; then    
+        echo "{ \"status\": \"active\", \"freeStorage\": $freeStorage }"
+    else     
+        rm $1*.pcap &> /dev/null
+        # ensure that files we create are readable by the http server
+        umask 0022
+        tcpdump -w $1$2-$3.pcap -G $3 -W 1 -s 68 -i rai0 &> /dev/null &
+        echo "{ \"status\": \"started\", \"file\": \"$2.pcap\", \"fileSize\":0, \"startTs\": $2, \"durationSec\": $3, \"freeStorage\": \"$freeStorage\" }"
+    fi
+}
+
+cancel() {    
+    if pgrep tcpdump > /dev/null; then
+        kill `pidof tcpdump`
+        rm $1*.pcap &> /dev/null        
+    fi
+    echo "{ \"status\": \"none\", \"file\": \"\", \"fileSize\":0, \"startTs\": 0, \"durationSec\": 0, \"freeStorage\": \"$freeStorage\" }"                  
+}
+
+if [ "$1" == "start" ] ; then
+    start $2 $3 $4
+elif [ "$1" == "cancel" ] ; then
+    cancel $2 $3
+else 
+    check $2 $3
+fi

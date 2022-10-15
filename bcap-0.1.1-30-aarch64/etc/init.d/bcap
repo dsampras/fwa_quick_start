@@ -1,0 +1,56 @@
+#!/bin/sh
+# Copyright (C) 2021 Nokia
+
+# NOTE: Most of this script can be removed once we drop support for 2101 builds;
+# all we need for 2103 is the uhttpd command-line itself
+
+[ -f /etc/container.common ] && source /etc/container.common
+
+START=60
+SERVICE_NAME=bcap
+SERVICE_ROOT=${APP_ROOT}/bcap
+SERVICE_PID_FILE=${APP_ROOT}/var/run/bcap.pid
+
+UHTTPD=$(which uhttpd)
+
+start() {
+  ${UHTTPD} -h ${SERVICE_ROOT} -p 8770 -D -x '/api' -L ${SERVICE_ROOT}/api/bcap.lua -l /api
+  pid=$(pgrep -f 'uhttp.*bcap')
+  mkdir -p ${APP_ROOT}/var/run
+  mkdir -p ${SERVICE_ROOT}/data
+  echo ${pid} > ${SERVICE_PID_FILE}
+}
+
+stop() {
+  local pid=$(cat ${SERVICE_PID_FILE})
+  rm ${SERVICE_PID_FILE}
+  echo -n "stopping ${SERVICE_NAME} ... "
+  kill -TERM ${pid} 2> /dev/null
+  for i in $(seq 1 5); do
+    if kill -0 ${pid} 2> /dev/null; then
+      sleep 1
+    fi
+  done
+
+  kill -0 ${pid} 2> /dev/null && kill -KILL ${pid} 2> /dev/null
+  echo "stopped"
+}
+
+if [ "${APP_ROOT}" = "/opt/opkg" ]; then
+  case $1 in
+    start)
+      start
+      ;;
+    stop)
+      stop
+      ;;
+    *)
+      echo "usage: /etc/init.d/bcap start|stop"
+      exit 1
+      ;;
+  esac
+
+  exit $?
+else
+  ${UHTTPD} -h /bcap -p 8770 -f -D -x '/api' -L /bcap/api/bcap.lua -l /api
+fi

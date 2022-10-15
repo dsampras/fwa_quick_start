@@ -1,0 +1,30 @@
+{
+  "annotations":   {
+    "com.nokia.app_name": "bcap",
+    "com.nokia.embedded_rootfs": true,
+    "com.nokia.app_version": "0.1.1-30",
+    "com.nokia.unprivileged": false,
+    "com.nokia.embedded_package":     {
+      "name": "rootfs.tar.gz",
+      "type": "tar"
+    }
+  },
+  "hostname": "NOS",
+  "config":   {
+    "Env": [],
+    "Cmd": ["/etc/init.d/bcap"]
+  },
+  "network": {"type": "share"},
+  "mounts": [  {
+    "source": "/container/lxc/app/bcap/data",
+    "destination": "bcap/data",
+    "options": ["rw"]
+  }],
+  "linux": {"resources":   {
+    "memory": {"limit": "10M"},
+    "cpu":     {
+      "quota": "1",
+      "period": "100"
+    }
+  }}
+}
