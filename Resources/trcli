@@ -1,0 +1,89 @@
+#!/bin/sh
+
+tr_install() {
+  url=$1; shift
+  duid=$1; shift
+
+  # mosquitto_pub -h 127.0.0.1 -t "/TR069/CPEMethod" -m "{ \"MessageID\": \"CPEMethod\", \"MessageSender\": \"Tr069Agent\", \"MessageSequence\": 1, \"Content\": { \"RPCName\": \"ChangeDUState\", \"CommandKey\": \"150050\", \"Operations\": [ { \"Operation\": \"InstallOpStruct\", \"URL\": \"http:\/\/192.168.1.92:8080\/hello_withfs.tar.gz\", \"UUID\": \"5\", \"Username\": \"\", \"Password\": \"\", \"Version\": \"\", \"ExecutionEnvRef\": \"Device.SoftwareModules.ExecEnv.1.\" } ] } }"
+  mosquitto_pub -h 127.0.0.1 -t "/TR069/CPEMethod" -m "{ \"MessageID\": \"CPEMethod\", \"MessageSender\": \"Tr069Agent\", \"MessageSequence\": 1, \"Content\": { \"RPCName\": \"ChangeDUState\", \"CommandKey\": \"150050\", \"Operations\": [ { \"Operation\": \"InstallOpStruct\", \"URL\": \"${url}\", \"UUID\": \"${duid}\", \"Username\": \"\", \"Password\": \"\", \"Version\": \"\", \"ExecutionEnvRef\": \"Device.SoftwareModules.ExecEnv.1.\" } ] } }"
+}
+
+tr_uninstall() {
+  duid=$1; shift
+
+  # mosquitto_pub -h 127.0.0.1 -t "/TR069/CPEMethod" -m "{ \"MessageID\": \"CPEMethod\", \"MessageSender\": \"Tr069Agent\", \"MessageSequence\": 1, \"Content\": { \"RPCName\": \"ChangeDUState\", \"CommandKey\": \"73741\", \"Operations\": [ { \"Operation\": \"UninstallOpStruct\", \"UUID\": \"5\", \"Version\": \"\", \"ExecutionEnvRef\": \"\" } ] } }"
+  # echo "----> mosquitto_pub -h 127.0.0.1 -t /TR069/CPEMethod -m { \"MessageID\": \"CPEMethod\", \"MessageSender\": \"Tr069Agent\", \"MessageSequence\": 1, \"Content\": { \"RPCName\": \"ChangeDUState\", \"CommandKey\": \"73741\", \"Operations\": [ { \"Operation\": \"UninstallOpStruct\", \"UUID\": \"${duid}\", \"Version\": \"\", \"ExecutionEnvRef\": \"Device.SoftwareModules.ExecEnv.1\" } ] } }"
+  mosquitto_pub -h 127.0.0.1 -t "/TR069/CPEMethod" -m "{ \"MessageID\": \"CPEMethod\", \"MessageSender\": \"Tr069Agent\", \"MessageSequence\": 1, \"Content\": { \"RPCName\": \"ChangeDUState\", \"CommandKey\": \"73741\", \"Operations\": [ { \"Operation\": \"UninstallOpStruct\", \"UUID\": \"${duid}\", \"Version\": \"\", \"ExecutionEnvRef\": \"\" } ] } }"
+}
+
+
+tr_update() {
+  # Update
+  mosquitto_pub -h 127.0.0.1 -t "/TR069/CPEMethod" -m "{ \"MessageID\": \"CPEMethod\", \"MessageSender\": \"Tr069Agent\", \"MessageSequence\": 1, \"Content\": { \"RPCName\": \"ChangeDUState\", \"CommandKey\": \"139844\", \"Operations\": [ { \"Operation\": \"UpdateOpStruct\", \"URL\": \"http:\/\/192.168.1.92:8080\/hello_withfs.tar.gz\", \"UUID\": \"5\", \"Username\": \"\", \"Password\": \"\", \"Version\": \"1.0\", \"ExecutionEnvRef\": \"\" } ] } }"
+}
+
+tr_start() {
+  # Start
+  cfgcli -s InternetGatewayDevice.SoftwareModules.ExecutionUnit.1.RequestedState Active
+}
+
+tr_stop() {
+  # Stop
+  cfgcli -s InternetGatewayDevice.SoftwareModules.ExecutionUnit.1.RequestedState Idle
+}
+
+tr_usage() {
+  echo "usage: trcli <command> <parameters>"
+  echo "    install <url> <duid>"
+  echo "    uninstall <duid>"
+  echo "    start <duid>"
+  echo "    stop <duid>"
+  exit 1
+}
+
+case $1 in
+  in*)
+    echo "install ($1)"
+    if [ $# -ne 3 ]; then
+      tr_usage
+    fi
+    command=tr_install
+    url=$2
+    duid=$3
+    echo "-> tr_install ${url} ${duid}"
+    tr_install ${url} ${duid}
+    ;;
+  un*)
+    echo "uninstall ($1)"
+    if [ $# -ne 2 ]; then
+      tr_usage
+    fi
+    command=tr_uninstall
+    duid=$2
+    echo "-> tr_uninstall ${duid}"
+    tr_uninstall ${duid}
+    ;;
+  sta*)
+    echo "start ($1)"
+    if [ $# -ne 2 ]; then
+      tr_usage
+    fi
+    command=tr_start
+    duid=$2
+    echo "-> tr_start ${duid}"
+    tr_start ${duid}
+    ;;
+  sto*)
+    if [ $# -ne 2 ]; then
+      tr_usage
+    fi
+    command=tr_stop
+    duid=$2
+    echo "-> tr_stop ${duid}"
+    tr_stop ${duid}
+    ;;
+  *)
+    tr_usage
+    ;;
+esac
+
